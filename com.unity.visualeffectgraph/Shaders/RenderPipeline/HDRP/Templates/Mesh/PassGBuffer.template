@@ -1,35 +1,35 @@
 Pass
-{		
+{
 	Tags { "LightMode"="GBuffer" }
-	
+
 	Stencil
 	{
 		WriteMask 7
 		Ref  2
 		Comp Always
 		Pass Replace
-	}	
-		
+	}
+
 	HLSLPROGRAM
 	#pragma target 4.5
-	
+
 	#pragma multi_compile _ LIGHT_LAYERS
 	#pragma multi_compile _ DEBUG_DISPLAY
-	
+
 	#define UNITY_MATERIAL_LIT
-	
-	${VFXInclude("Shaders/RenderPipeline/HDRP/VFXLitVaryings.template")}	
-	
+
+	${VFXInclude("Shaders/RenderPipeline/HDRP/VFXLitVaryings.template")}
+
 	struct ps_input
 	{
 		float4 pos : SV_POSITION;
-		
+
 		${VFXHDRPLitDeclareVaryings}
-		
+
 		#if USE_FLIPBOOK_INTERPOLATION
 		float4 uv : TEXCOORD1;
 		#else
-		float2 uv : TEXCOORD1;	
+		float2 uv : TEXCOORD1;
 		#endif
 		float3 normal : TEXCOORD2;
 		#if USE_NORMAL_MAP
@@ -41,15 +41,21 @@ Pass
 		// z: frame blending factor
 		nointerpolation float3 builtInInterpolants : TEXCOORD4;
 		#endif
+		#if USE_FLIPBOOK_MOTIONVECTORS
+		// x: motion vector scale u
+		// y: motion vector scale v
+		nointerpolation float2 builtInInterpolants2 : TEXCOORD5;
+		#endif
+		UNITY_VERTEX_OUTPUT_STEREO
 	};
-	
+
 	struct ps_output
 	{
 		float4 color : SV_Target0;
 	};
 
 ${VFXHDRPLitVaryingsMacros}
-	
+
 #define VFX_VARYING_PS_INPUTS ps_input
 #define VFX_VARYING_POSCS pos
 #define VFX_VARYING_UV uv
@@ -65,10 +71,10 @@ ${VFXBegin:VFXVertexAdditionalProcess}
 ${VFXHDRPLitFillVaryings}
 ${VFXEnd}
 
-	${VFXInclude("Shaders/ParticleMeshes/Pass.template")}	
-	#define SHADERPASS SHADERPASS_GBUFFER	
-	${VFXInclude("Shaders/RenderPipeline/HDRP/VFXLit.template")}	
-		
+	${VFXInclude("Shaders/ParticleMeshes/Pass.template")}
+	#define SHADERPASS SHADERPASS_GBUFFER
+	${VFXInclude("Shaders/RenderPipeline/HDRP/VFXLit.template")}
+
 	#pragma fragment frag
 	void frag(ps_input i, OUTPUT_GBUFFER(outGBuffer)
 #if USE_DOUBLE_SIDED
@@ -76,6 +82,7 @@ ${VFXEnd}
 #endif
 	)
 	{
+		UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
 		${VFXComputeNormalWS}
 		VFXComputePixelOutputToGBuffer(i,normalWS,uvData,outGBuffer);
 	}

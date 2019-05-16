@@ -5,7 +5,11 @@
 CBUFFER_START(Uniform)
     uint maxNb;
     uint offset;
+    uint instanceCountMultiplier;
 CBUFFER_END
+
+// XRTODO: workaround until C++ change is merged (set to 2 to test single-pass instancing)
+#define instanceCountMultiplier 1
 
 #define NB_THREADS_PER_GROUP 64
 
@@ -41,14 +45,14 @@ void CSVFXIndirectArgs(uint3 id : SV_DispatchThreadID)
             case 0: // point
             {
                 firstArg = elementCount;
-                secondArg = 1;
+                secondArg = instanceCountMultiplier;
                 break;
             }
 
             case 1: // lines
             {
                 firstArg = elementCount * 2;
-                secondArg = 1;
+                secondArg = instanceCountMultiplier;
                 break;
             }
 
@@ -65,6 +69,7 @@ void CSVFXIndirectArgs(uint3 id : SV_DispatchThreadID)
                     firstArg = elementCount * 6;
                     secondArg = 1;
                 }
+                secondArg *= instanceCountMultiplier;
                 break;
             }
 
@@ -81,17 +86,43 @@ void CSVFXIndirectArgs(uint3 id : SV_DispatchThreadID)
                     firstArg = elementCount * 36;
                     secondArg = 1;
                 }
+                secondArg *= instanceCountMultiplier;
                 break;
             }
 
             case 4: // meshes
             {
                 firstArg = data.indexCount;
-                secondArg = elementCount;
+                secondArg = elementCount * instanceCountMultiplier;
                 thirdArg = data.startIndex;
                 fourthArg = data.baseVertex;
                 break;
             }
+
+            case 5: // triangles
+            {
+                firstArg = elementCount * 3;
+                secondArg = instanceCountMultiplier;
+                break;
+            }
+
+			      case 6: // octagon
+			      {
+                if (elementCount > 8192) // Due to 16bits indices (8 vertices per element)
+                {
+                    const uint NB_PARTICLES_PER_INSTANCE = 1024;
+                    firstArg = NB_PARTICLES_PER_INSTANCE * 18;
+                    secondArg = (elementCount + (NB_PARTICLES_PER_INSTANCE - 1)) / NB_PARTICLES_PER_INSTANCE;
+                }
+                else
+                {
+                    firstArg = elementCount * 18;
+                    secondArg = 1;
+                }
+                secondArg *= instanceCountMultiplier;
+                break;
+			      }
+
             case 0xffffffff: // dispatch
             {
                 //Clamp indirect dispatch to the maximum dispatch width of DX11 : 65535 (D3D11_CS_DISPATCH_MAX_THREAD_GROUPS_PER_DIMENSION)

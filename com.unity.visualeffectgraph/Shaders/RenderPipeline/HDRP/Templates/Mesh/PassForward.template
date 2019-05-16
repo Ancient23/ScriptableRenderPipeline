@@ -1,10 +1,10 @@
 Pass
-{		
+{
 	Tags { "LightMode"="${VFXHDRPForwardPassName}"}
-			
+
 	HLSLPROGRAM
 	#pragma target 4.5
-	
+
 	#define UNITY_MATERIAL_LIT
 	#define LIGHTLOOP_TILE_PASS
 	${VFXHDRPForwardDefines}
@@ -12,19 +12,19 @@ Pass
 	#pragma multi_compile SHADOW_LOW SHADOW_MEDIUM SHADOW_HIGH SHADOW_VERY_HIGH
 	#pragma multi_compile _ DEBUG_DISPLAY
 	//#pragma enable_d3d11_debug_symbols
-	
-	${VFXInclude("Shaders/RenderPipeline/HDRP/VFXLitVaryings.template")}	
-	
+
+	${VFXInclude("Shaders/RenderPipeline/HDRP/VFXLitVaryings.template")}
+
 	struct ps_input
 	{
 		float4 pos : SV_POSITION;
-		
+
 		${VFXHDRPLitDeclareVaryings}
-		
+
 		#if USE_FLIPBOOK_INTERPOLATION
 		float4 uv : TEXCOORD1;
 		#else
-		float2 uv : TEXCOORD1;	
+		float2 uv : TEXCOORD1;
 		#endif
 		float3 normal : TEXCOORD2;
 		#if USE_NORMAL_MAP
@@ -36,9 +36,15 @@ Pass
 		// z: frame blending factor
 		nointerpolation float3 builtInInterpolants : TEXCOORD4;
 		#endif
-		float3 posWS : TEXCOORD5;
+		#if USE_FLIPBOOK_MOTIONVECTORS
+		// x: motion vector scale u
+		// y: motion vector scale v
+		nointerpolation float2 builtInInterpolants2 : TEXCOORD5;
+		#endif
+		float3 posWS : TEXCOORD6;
+		UNITY_VERTEX_OUTPUT_STEREO
 	};
-	
+
 	struct ps_output
 	{
 		float4 color : SV_Target0;
@@ -64,8 +70,8 @@ ${VFXEnd}
 
 	${VFXInclude("Shaders/ParticleMeshes/Pass.template")}
 	#define SHADERPASS SHADERPASS_FORWARD
-	${VFXInclude("Shaders/RenderPipeline/HDRP/VFXLit.template")}	
-		
+	${VFXInclude("Shaders/RenderPipeline/HDRP/VFXLit.template")}
+
 	#pragma fragment frag
 	void frag(ps_input i
 	, out float4 outColor : SV_Target0
@@ -74,6 +80,7 @@ ${VFXEnd}
 #endif
 	)
 	{
+		UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
 		${VFXComputeNormalWS}
 		outColor = VFXGetPixelOutputForward(i,normalWS,uvData);
 	}
