@@ -9,7 +9,7 @@ CBUFFER_START(Uniform)
 CBUFFER_END
 
 // XRTODO: workaround until C++ change is merged (set to 2 to test single-pass instancing)
-#define instanceCountMultiplier 1
+#define instanceCountMultiplier 2
 
 #define NB_THREADS_PER_GROUP 64
 
